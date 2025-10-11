@@ -3,6 +3,12 @@
 #ifdef CT2_USE_HIP
 #include <hip/hip_runtime.h>
 #include <hipblas/hipblas.h>
+#ifndef hipblasGemmEx_v2
+#define hipblasGemmEx_v2 hipblasGemmEx_64
+#endif
+#ifndef hipblasGemmStridedBatchedEx_v2
+#define hipblasGemmStridedBatchedEx_v2 hipblasGemmStridedBatchedEx_64
+#endif
 #define cudaMemcpyAsync hipMemcpyAsync
 #define cudaMemcpyDeviceToDevice hipMemcpyDeviceToDevice
 #define cudaMemcpyDeviceToHost hipMemcpyDeviceToHost
