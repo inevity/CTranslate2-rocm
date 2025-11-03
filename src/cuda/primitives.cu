@@ -3,6 +3,16 @@
 #ifdef CT2_USE_HIP
 #include <hip/hip_runtime.h>
 #include <hipblas/hipblas.h>
+
+#include <thrust/version.h>
+//#include <thrust/system/hip/execution_policy.h>
+#include <thrust/reduce.h>
+#include <thrust/execution_policy.h>
+#include <thrust/extrema.h>
+#include <thrust/fill.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+
 #ifndef hipblasGemmEx_v2
 #define hipblasGemmEx_v2 hipblasGemmEx_64
 #endif

@@ -3,9 +3,18 @@
 #include <string>
 
 #ifdef CT2_USE_HIP
+#include <thrust/version.h>
+//#include <thrust/system/hip/execution_policy.h>
+#include <thrust/reduce.h>
+#include <thrust/execution_policy.h>
+#include <thrust/extrema.h>
+#include <thrust/fill.h>
+#include <thrust/iterator/permutation_iterator.h>
+#include <thrust/iterator/transform_iterator.h>
+#include <thrust/functional.h>
+
 #include <hip/hip_runtime.h>
 #include <hipblas/hipblas.h>
-#include <thrust/execution_policy.h>
 #include <hipcub/hipcub.hpp>
 #ifdef CT2_WITH_TENSOR_PARALLEL
   #include <cuda/mpi_stub.h>
@@ -172,7 +181,7 @@ namespace ctranslate2 {
 
 // Convenience macro to call Thrust functions with a default execution policy.
 #ifdef CT2_USE_HIP
-#define THRUST_CALL(FUN, ...) FUN(thrust::hip::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
+#define THRUST_CALL(FUN, ...) FUN(thrust::hip_rocprim::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 #else
 #define THRUST_CALL(FUN, ...) FUN(thrust::cuda::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 #endif
