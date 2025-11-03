@@ -178,47 +178,27 @@ namespace ctranslate2 {
 #define THRUST_CALL(FUN, ...) FUN(thrust::cuda::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 #endif
 
-// Convert thrust operators to rocprim operators for HIP builds
+// Create rocprim operators for HIP builds
 #ifdef CT2_USE_HIP
-namespace rocprim_wrappers {
-  template <typename T>
-  struct plus_wrapper {
-    using type = rocprim::plus<T>;
-  };
-  
-  template <typename T>
-  struct maximum_wrapper {
-    using type = rocprim::maximum<T>;
-  };
-  
-  template <typename T>
-  struct minimum_wrapper {
-    using type = rocprim::minimum<T>;
-  };
+template <typename T>
+inline rocprim::plus<T> make_rocprim_op(ctranslate2::cuda::plus<T>) {
+  return rocprim::plus<T>{};
 }
 
-template <typename Op>
-struct rocprim_op_converter;
+template <typename T>
+inline rocprim::maximum<T> make_rocprim_op(ctranslate2::cuda::maximum<T>) {
+  return rocprim::maximum<T>{};
+}
 
 template <typename T>
-struct rocprim_op_converter<ctranslate2::cuda::plus<T>> {
-  using type = rocprim::plus<T>;
-};
+inline rocprim::minimum<T> make_rocprim_op(ctranslate2::cuda::minimum<T>) {
+  return rocprim::minimum<T>{};
+}
 
 template <typename T>
-struct rocprim_op_converter<ctranslate2::cuda::maximum<T>> {
-  using type = rocprim::maximum<T>;
-};
-
-template <typename T>
-struct rocprim_op_converter<ctranslate2::cuda::minimum<T>> {
-  using type = rocprim::minimum<T>;
-};
-
-template <typename T>
-struct rocprim_op_converter<thrust::plus<T>> {
-  using type = rocprim::plus<T>;
-};
+inline rocprim::plus<T> make_rocprim_op(thrust::plus<T>) {
+  return rocprim::plus<T>{};
+}
 #endif
 
 // HIP-compatible reduction using rocprim
@@ -233,8 +213,7 @@ T hip_reduce(Iterator first, Iterator last, T init, BinaryOp op) {
   auto stream = ctranslate2::cuda::get_cuda_stream();
   
   // Convert operator to rocprim type
-  using RocprimOp = typename rocprim_op_converter<BinaryOp>::type;
-  RocprimOp rocprim_op;
+  auto rocprim_op = make_rocprim_op(op);
   
   // Determine temporary device storage requirements
   rocprim::reduce(d_temp_storage, temp_storage_bytes, d_input, d_output, init, 
