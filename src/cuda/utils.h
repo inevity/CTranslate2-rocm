@@ -7,6 +7,7 @@
 #include <hipblas/hipblas.h>
 #include <thrust/execution_policy.h>
 #include <hipcub/hipcub.hpp>
+#include <rocprim/rocprim.hpp>
 #ifdef CT2_WITH_TENSOR_PARALLEL
   #include <cuda/mpi_stub.h>
   #include <rccl/rccl.h>
@@ -171,11 +172,50 @@ namespace ctranslate2 {
     };
 
 // Convenience macro to call Thrust functions with a default execution policy.
-// #define THRUST_CALL(FUN, ...) FUN(thrust::hip::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 #ifdef CT2_USE_HIP
-#define THRUST_CALL(FUN, ...) FUN(__VA_ARGS__)
+#define THRUST_CALL(FUN, ...) FUN(thrust::hip::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 #else
 #define THRUST_CALL(FUN, ...) FUN(thrust::cuda::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
+#endif
+
+// HIP-compatible reduction using rocprim
+#ifdef CT2_USE_HIP
+template<typename Iterator, typename T, typename BinaryOp>
+T hip_reduce(Iterator first, Iterator last, T init, BinaryOp op) {
+  void* d_temp_storage = nullptr;
+  size_t temp_storage_bytes = 0;
+  T* d_output = nullptr;
+  auto d_input = thrust::raw_pointer_cast(&*first);
+  auto num_elements = thrust::distance(first, last);
+  auto stream = ctranslate2::cuda::get_cuda_stream();
+  
+  // Determine temporary device storage requirements
+  rocprim::reduce(d_temp_storage, temp_storage_bytes, d_input, d_output, num_elements, 
+                  op, init, stream);
+  
+  // Allocate temporary storage and output
+  hipMalloc(&d_temp_storage, temp_storage_bytes);
+  hipMalloc(&d_output, sizeof(T));
+  
+  // Perform reduction
+  rocprim::reduce(d_temp_storage, temp_storage_bytes, d_input, d_output, num_elements, 
+                  op, init, stream);
+  
+  // Copy result back to host
+  T result;
+  hipMemcpy(&result, d_output, sizeof(T), hipMemcpyDeviceToHost);
+  
+  // Free memory
+  hipFree(d_temp_storage);
+  hipFree(d_output);
+  
+  return result;
+}
+#else
+template<typename Iterator, typename T, typename BinaryOp>
+T hip_reduce(Iterator first, Iterator last, T init, BinaryOp op) {
+  return THRUST_CALL(thrust::reduce, first, last, init, op);
+}
 #endif
   }
 }

@@ -34,24 +34,6 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #endif
-// #ifdef CT2_USE_HIP
-// #define THRUST_REDUCE(first, last, init, op) \
-//   ({ \
-//     using T = decltype(init); \
-//     void* tmp = nullptr; size_t sz = 0; \
-//     T result = init; \
-//     auto stream = ctranslate2::cuda::get_cuda_stream(); \
-//     rocprim::reduce(nullptr, sz, first, &result, thrust::distance(first, last), rocprim::plus<T>(), init, stream); \
-//     hipMalloc(&tmp, sz); \
-//     rocprim::reduce(tmp, sz, first, &result, thrust::distance(first, last), rocprim::plus<T>(), init, stream); \
-//     hipFree(tmp); \
-//     result; \
-//   })
-// #else
-// #define THRUST_REDUCE(first, last, init, op) \
-//   thrust::reduce(thrust::cuda::par.on(ctranslate2::cuda::get_cuda_stream()), first, last, init, op)
-// #endif
-
 
 #include <thrust/device_ptr.h>
 #include "cuda/helpers.h"
@@ -136,11 +118,18 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::sum(const T* array, dim_t size) {
+#ifdef CT2_USE_HIP
+    return hip_reduce(cuda::device_cast(array),
+                      cuda::device_cast(array) + size,
+                      cuda::device_type<T>(),
+                      cuda::plus<cuda::device_type<T>>());
+#else
     return T(THRUST_CALL(thrust::reduce,
                          cuda::device_cast(array),
                          cuda::device_cast(array) + size,
                          cuda::device_type<T>(),
                          cuda::plus<cuda::device_type<T>>()));
+#endif
   }
 
   template<>
@@ -156,11 +145,18 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, dim_t size) {
+#ifdef CT2_USE_HIP
+    return hip_reduce(cuda::device_cast(array),
+                      cuda::device_cast(array) + size,
+                      cuda::device_type<T>(std::numeric_limits<T>::lowest()),
+                      cuda::maximum<cuda::device_type<T>>());
+#else
     return T(THRUST_CALL(thrust::reduce,
                          cuda::device_cast(array),
                          cuda::device_cast(array) + size,
                          cuda::device_type<T>(std::numeric_limits<T>::lowest()),
                          cuda::maximum<cuda::device_type<T>>()));
+#endif
   }
 
   template<>
@@ -722,7 +718,11 @@ namespace ctranslate2 {
       thrust::device_pointer_cast(cuda::device_cast(x)),
       exp_minus_max_func<cuda::device_type<T>>(max_value));
 
+#ifdef CT2_USE_HIP
+    const float exp_sum = hip_reduce(exp_it, exp_it + size, float(0), thrust::plus<float>());
+#else
     const float exp_sum = THRUST_CALL(thrust::reduce, exp_it, exp_it + size);
+#endif
     return std::log(exp_sum) + max_value;
   }
 
