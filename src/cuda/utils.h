@@ -178,6 +178,49 @@ namespace ctranslate2 {
 #define THRUST_CALL(FUN, ...) FUN(thrust::cuda::par_nosync.on(ctranslate2::cuda::get_cuda_stream()), __VA_ARGS__)
 #endif
 
+// Convert thrust operators to rocprim operators for HIP builds
+#ifdef CT2_USE_HIP
+namespace rocprim_wrappers {
+  template <typename T>
+  struct plus_wrapper {
+    using type = rocprim::plus<T>;
+  };
+  
+  template <typename T>
+  struct maximum_wrapper {
+    using type = rocprim::maximum<T>;
+  };
+  
+  template <typename T>
+  struct minimum_wrapper {
+    using type = rocprim::minimum<T>;
+  };
+}
+
+template <typename Op>
+struct rocprim_op_converter;
+
+template <typename T>
+struct rocprim_op_converter<ctranslate2::cuda::plus<T>> {
+  using type = rocprim::plus<T>;
+};
+
+template <typename T>
+struct rocprim_op_converter<ctranslate2::cuda::maximum<T>> {
+  using type = rocprim::maximum<T>;
+};
+
+template <typename T>
+struct rocprim_op_converter<ctranslate2::cuda::minimum<T>> {
+  using type = rocprim::minimum<T>;
+};
+
+template <typename T>
+struct rocprim_op_converter<thrust::plus<T>> {
+  using type = rocprim::plus<T>;
+};
+#endif
+
 // HIP-compatible reduction using rocprim
 #ifdef CT2_USE_HIP
 template<typename Iterator, typename T, typename BinaryOp>
@@ -189,17 +232,21 @@ T hip_reduce(Iterator first, Iterator last, T init, BinaryOp op) {
   auto num_elements = thrust::distance(first, last);
   auto stream = ctranslate2::cuda::get_cuda_stream();
   
+  // Convert operator to rocprim type
+  using RocprimOp = typename rocprim_op_converter<BinaryOp>::type;
+  RocprimOp rocprim_op;
+  
   // Determine temporary device storage requirements
-  rocprim::reduce(d_temp_storage, temp_storage_bytes, d_input, d_output, num_elements, 
-                  op, init, stream);
+  rocprim::reduce(d_temp_storage, temp_storage_bytes, d_input, d_output, init, 
+                  num_elements, rocprim_op, stream);
   
   // Allocate temporary storage and output
   hipMalloc(&d_temp_storage, temp_storage_bytes);
   hipMalloc(&d_output, sizeof(T));
   
   // Perform reduction
-  rocprim::reduce(d_temp_storage, temp_storage_bytes, d_input, d_output, num_elements, 
-                  op, init, stream);
+  rocprim::reduce(d_temp_storage, temp_storage_bytes, d_input, d_output, init, 
+                  num_elements, rocprim_op, stream);
   
   // Copy result back to host
   T result;
