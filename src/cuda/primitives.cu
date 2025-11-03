@@ -34,6 +34,24 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #endif
+// #ifdef CT2_USE_HIP
+// #define THRUST_REDUCE(first, last, init, op) \
+//   ({ \
+//     using T = decltype(init); \
+//     void* tmp = nullptr; size_t sz = 0; \
+//     T result = init; \
+//     auto stream = ctranslate2::cuda::get_cuda_stream(); \
+//     rocprim::reduce(nullptr, sz, first, &result, thrust::distance(first, last), rocprim::plus<T>(), init, stream); \
+//     hipMalloc(&tmp, sz); \
+//     rocprim::reduce(tmp, sz, first, &result, thrust::distance(first, last), rocprim::plus<T>(), init, stream); \
+//     hipFree(tmp); \
+//     result; \
+//   })
+// #else
+// #define THRUST_REDUCE(first, last, init, op) \
+//   thrust::reduce(thrust::cuda::par.on(ctranslate2::cuda::get_cuda_stream()), first, last, init, op)
+// #endif
+
 
 #include <thrust/device_ptr.h>
 #include "cuda/helpers.h"
