@@ -5,6 +5,7 @@
 #include <thrust/gather.h>
 //#include <thrust/iterator/counting_iterator.h>
 #include <rocprim/iterator/counting_iterator.hpp>
+#include <rocprim/device/device_reduce.hpp>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/scatter.h>
 

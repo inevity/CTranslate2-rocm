@@ -2,6 +2,7 @@
 
 #include <thrust/gather.h>
 #include <rocprim/iterator/counting_iterator.hpp>
+#include <rocprim/device/device_reduce.hpp>
 #include <thrust/iterator/transform_iterator.h>
 
 #include "cuda/helpers.h"
