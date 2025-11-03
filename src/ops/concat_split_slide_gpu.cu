@@ -3,7 +3,8 @@
 #include "ctranslate2/ops/slide.h"
 
 #include <thrust/gather.h>
-#include <thrust/iterator/counting_iterator.h>
+//#include <thrust/iterator/counting_iterator.h>
+#include <rocprim/iterator/counting_iterator.hpp>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/scatter.h>
 
@@ -86,12 +87,12 @@ namespace ctranslate2 {
 
           if (inner_size == 1) {
             auto map_ids = thrust::make_transform_iterator(
-              thrust::counting_iterator<cuda::index_t>(0),
+              rocprim::counting_iterator<cuda::index_t>(0),
               depth_offset_map<cuda::index_t>(offset, input_dim, output_dim));
             THRUST_CALL(thrust::scatter, input_data, input_data + input_size, map_ids, output_data);
           } else if (inner_bytes % sizeof (uint4) == 0 && input_bytes % sizeof (uint4) == 0) {
             auto map_ids = thrust::make_transform_iterator(
-              thrust::counting_iterator<cuda::index_t>(0),
+              rocprim::counting_iterator<cuda::index_t>(0),
               inner_dim_offset_map<cuda::index_t>(offset,
                                                   input_dim,
                                                   output_dim,
@@ -103,7 +104,7 @@ namespace ctranslate2 {
                         reinterpret_cast<uint4*>(output_data));
           } else {
             auto map_ids = thrust::make_transform_iterator(
-              thrust::counting_iterator<cuda::index_t>(0),
+              rocprim::counting_iterator<cuda::index_t>(0),
               inner_dim_offset_map<cuda::index_t>(offset, input_dim, output_dim, inner_size));
             THRUST_CALL(thrust::scatter, input_data, input_data + input_size, map_ids, output_data);
           }
@@ -137,12 +138,12 @@ namespace ctranslate2 {
 
           if (inner_size == 1) {
             auto map_ids = thrust::make_transform_iterator(
-              thrust::counting_iterator<cuda::index_t>(0),
+              rocprim::counting_iterator<cuda::index_t>(0),
               depth_offset_map<cuda::index_t>(offset, output_dim, input_dim));
             THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
           } else if (inner_bytes % sizeof (uint4) == 0 && output_bytes % sizeof (uint4) == 0) {
             auto map_ids = thrust::make_transform_iterator(
-              thrust::counting_iterator<cuda::index_t>(0),
+              rocprim::counting_iterator<cuda::index_t>(0),
               inner_dim_offset_map<cuda::index_t>(offset,
                                                   output_dim,
                                                   input_dim,
@@ -154,7 +155,7 @@ namespace ctranslate2 {
                         reinterpret_cast<uint4*>(output_data));
           } else {
             auto map_ids = thrust::make_transform_iterator(
-              thrust::counting_iterator<cuda::index_t>(0),
+              rocprim::counting_iterator<cuda::index_t>(0),
               inner_dim_offset_map<cuda::index_t>(offset, output_dim, input_dim, inner_size));
             THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
           }
@@ -184,12 +185,12 @@ namespace ctranslate2 {
 
         if (inner_size == 1) {
           auto map_ids = thrust::make_transform_iterator(
-            thrust::counting_iterator<cuda::index_t>(0),
+            rocprim::counting_iterator<cuda::index_t>(0),
             depth_offset_map<cuda::index_t>(index, output_dim, input_dim));
           THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
         } else if (inner_bytes % sizeof(uint4) == 0 && output_bytes % sizeof(uint4) == 0) {
           auto map_ids = thrust::make_transform_iterator(
-            thrust::counting_iterator<cuda::index_t>(0),
+            rocprim::counting_iterator<cuda::index_t>(0),
             inner_dim_offset_map<cuda::index_t>(index,
                                                 output_dim,
                                                 input_dim,
@@ -201,7 +202,7 @@ namespace ctranslate2 {
                       reinterpret_cast<uint4 *>(output_data));
         } else {
           auto map_ids = thrust::make_transform_iterator(
-            thrust::counting_iterator<cuda::index_t>(0),
+            rocprim::counting_iterator<cuda::index_t>(0),
             inner_dim_offset_map<cuda::index_t>(index, output_dim, input_dim, inner_size));
           THRUST_CALL(thrust::gather, map_ids, map_ids + output_size, input_data, output_data);
         }

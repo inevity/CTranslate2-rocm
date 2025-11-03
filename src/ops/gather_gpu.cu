@@ -1,7 +1,7 @@
 #include "ctranslate2/ops/gather.h"
 
 #include <thrust/gather.h>
-#include <thrust/iterator/counting_iterator.h>
+#include <rocprim/iterator/counting_iterator.hpp>
 #include <thrust/iterator/transform_iterator.h>
 
 #include "cuda/helpers.h"
@@ -44,7 +44,7 @@ namespace ctranslate2 {
                     const T* src,
                     T* dst,
                     const dim_t dst_size) {
-      auto gather_ids = thrust::make_transform_iterator(thrust::counting_iterator<cuda::index_t>(0),
+      auto gather_ids = thrust::make_transform_iterator(rocprim::counting_iterator<cuda::index_t>(0),
                                                         index_map);
       THRUST_CALL(thrust::gather, gather_ids, gather_ids + dst_size, src, dst);
     }

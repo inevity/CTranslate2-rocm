@@ -1,7 +1,7 @@
 #include "ctranslate2/ops/tile.h"
 
 #include <thrust/gather.h>
-#include <thrust/iterator/counting_iterator.h>
+#include <rocprim/iterator/counting_iterator.hpp>
 #include <thrust/iterator/transform_iterator.h>
 
 #include "cuda/helpers.h"
@@ -45,7 +45,7 @@ namespace ctranslate2 {
 
       if (inner_bytes % sizeof (uint4) == 0) {
         auto gather_ids = thrust::make_transform_iterator(
-          thrust::counting_iterator<cuda::index_t>(0),
+          rocprim::counting_iterator<cuda::index_t>(0),
           tiled_index_map<cuda::index_t>(inner_bytes / sizeof (uint4), _num_tiles));
         THRUST_CALL(thrust::gather,
                     gather_ids,
@@ -55,7 +55,7 @@ namespace ctranslate2 {
 
       } else {
         auto gather_ids = thrust::make_transform_iterator(
-          thrust::counting_iterator<cuda::index_t>(0),
+          rocprim::counting_iterator<cuda::index_t>(0),
           tiled_index_map<cuda::index_t>(inner_size, _num_tiles));
         THRUST_CALL(thrust::gather,
                     gather_ids,

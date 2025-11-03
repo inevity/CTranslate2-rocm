@@ -29,7 +29,7 @@ namespace ctranslate2 {
       THRUST_CALL(thrust::transform,
                   cuda::device_cast(x.data<T>()),
                   cuda::device_cast(x.data<T>()) + x.size(),
-                  thrust::counting_iterator<cuda::index_t>(0),
+                  rocprim::counting_iterator<cuda::index_t>(0),
                   cuda::device_cast(y.data<T>()),
                   add_gumbel_noise_func(cuda::get_curand_states(x.size())));
     }
