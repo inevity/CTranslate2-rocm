@@ -95,7 +95,7 @@ namespace ctranslate2 {
                                  index_t size,
                                  const BinaryFunction& op,
                                  const IndexFunction& index_a) {
-      auto index_it = thrust::make_transform_iterator(thrust::counting_iterator<index_t>(0), index_a);
+      auto index_it = thrust::make_transform_iterator(rocprime::counting_iterator<index_t>(0), index_a);
       auto a_it = thrust::make_permutation_iterator(device_cast(a), index_it);
       THRUST_CALL(thrust::transform, a_it, a_it + size, device_cast(b), device_cast(c), op);
     }
@@ -104,7 +104,7 @@ namespace ctranslate2 {
     // return the index in the original iterator.
     template <typename T, typename PermFunction>
     inline void permute(const T* x, T* y, index_t size, const PermFunction& perm_fun) {
-      auto ind_it = thrust::counting_iterator<index_t>(0);
+      auto ind_it = rocprime::counting_iterator<index_t>(0);
       auto perm_ind_it = thrust::make_transform_iterator(ind_it, perm_fun);
       auto perm_it = thrust::make_permutation_iterator(device_cast(x), perm_ind_it);
       THRUST_CALL(thrust::copy, perm_it, perm_it + size, device_cast(y));
