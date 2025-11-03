@@ -118,7 +118,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::sum(const T* array, dim_t size) {
-    return T(THRUST_CALL(thrust::reduce,
+    return T(THRUST_CALL(rocprim::reduce,
                          cuda::device_cast(array),
                          cuda::device_cast(array) + size,
                          cuda::device_type<T>(),
@@ -128,7 +128,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   dim_t primitives<Device::CUDA>::max_element(const T* array, dim_t size) {
-    const auto* max = THRUST_CALL(thrust::max_element,
+    const auto* max = THRUST_CALL(rocprim::max_element,
                                   cuda::device_cast(array),
                                   cuda::device_cast(array) + size,
                                   cuda::maximum<cuda::device_type<T>>());
@@ -138,7 +138,7 @@ namespace ctranslate2 {
   template<>
   template <typename T>
   T primitives<Device::CUDA>::max(const T* array, dim_t size) {
-    return T(THRUST_CALL(thrust::reduce,
+    return T(THRUST_CALL(rocprim::reduce,
                          cuda::device_cast(array),
                          cuda::device_cast(array) + size,
                          cuda::device_type<T>(std::numeric_limits<T>::lowest()),
