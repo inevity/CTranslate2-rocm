@@ -180,24 +180,62 @@ namespace ctranslate2 {
 
 // Create rocprim operators for HIP builds
 #ifdef CT2_USE_HIP
-template <typename T>
-inline rocprim::plus<T> make_rocprim_op(ctranslate2::cuda::plus<T>) {
+// Helper to check if an operator is one of the custom cuda operators
+template <typename Op, typename = void>
+struct is_cuda_op : std::false_type {};
+
+template <typename Op>
+struct is_cuda_op<Op, std::void_t<decltype(sizeof(Op))>> : std::true_type {};
+
+// Type traits to map operator types to rocprim equivalents
+template <typename Op, bool IsPlus = false, bool IsMax = false, bool IsMin = false>
+struct operator_traits {};
+
+template <template <typename> class Op, typename T>
+struct operator_traits<Op<T>, true, false, false> {
+  using rocprim_op = rocprim::plus<T>;
+};
+
+template <template <typename> class Op, typename T>
+struct operator_traits<Op<T>, false, true, false> {
+  using rocprim_op = rocprim::maximum<T>;
+};
+
+template <template <typename> class Op, typename T>
+struct operator_traits<Op<T>, false, false, true> {
+  using rocprim_op = rocprim::minimum<T>;
+};
+
+// Detect and convert operators using SFINAE
+template <typename BinaryOp, typename T>
+auto make_rocprim_op_impl(const BinaryOp& op, T* type_tag) 
+  -> typename std::enable_if<std::is_same<BinaryOp, thrust::plus<T>>::value, rocprim::plus<T>>::type {
   return rocprim::plus<T>{};
 }
 
-template <typename T>
-inline rocprim::maximum<T> make_rocprim_op(ctranslate2::cuda::maximum<T>) {
+template <typename BinaryOp, typename T>
+auto make_rocprim_op_impl(const BinaryOp& op, T* type_tag) 
+  -> typename std::enable_if<std::is_same<BinaryOp, ctranslate2::cuda::plus<T>>::value, rocprim::plus<T>>::type {
+  return rocprim::plus<T>{};
+}
+
+template <typename BinaryOp, typename T>
+auto make_rocprim_op_impl(const BinaryOp& op, T* type_tag) 
+  -> typename std::enable_if<std::is_same<BinaryOp, ctranslate2::cuda::maximum<T>>::value, rocprim::maximum<T>>::type {
   return rocprim::maximum<T>{};
 }
 
-template <typename T>
-inline rocprim::minimum<T> make_rocprim_op(ctranslate2::cuda::minimum<T>) {
-  return rocprim::minimum<T>{};
+template <typename BinaryOp>
+auto make_rocprim_op_impl(const BinaryOp& op, int* type_tag) 
+  -> decltype(make_rocprim_op_impl(op, type_tag)) {
+  return make_rocprim_op_impl(op, type_tag);
 }
 
-template <typename T>
-inline rocprim::plus<T> make_rocprim_op(thrust::plus<T>) {
-  return rocprim::plus<T>{};
+// Fallback: just use the operator as-is (for operators that work with both thrust and rocprim)
+template <typename BinaryOp>
+auto make_rocprim_op(const BinaryOp& op) 
+  -> decltype(make_rocprim_op_impl(op, static_cast<int*>(nullptr))) {
+  return make_rocprim_op_impl(op, static_cast<int*>(nullptr));
 }
 #endif
 
